@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"context"
+	"strconv"
+
 	"github.com/LiteyukiStudio/spage/constants"
 	"github.com/LiteyukiStudio/spage/spage/middle"
 	"github.com/LiteyukiStudio/spage/spage/models"
 	"github.com/LiteyukiStudio/spage/spage/store"
 	"github.com/LiteyukiStudio/spage/utils"
-	"strconv"
 
 	"github.com/LiteyukiStudio/spage/resps"
 	"github.com/cloudwego/hertz/pkg/app"
@@ -70,12 +71,12 @@ func (ProjectApi) UserProjectAuth(ctx context.Context, c *app.RequestContext) {
 		c.Abort()
 		return
 	}
-	// 项目权限判断 Project authorization check
+	// 项目权限判断
 	if store.Project.UserIsOwner(project, user.ID) {
 		context.WithValue(ctx, "userProject", project)
 		return
 	}
-	// 组织权限判断 Organization authorization check
+	// 组织权限判断
 	if project.OwnerType == constants.OwnerTypeOrg {
 		// 组织查询
 		org, err := store.Org.GetOrgById(project.OwnerID)
@@ -119,7 +120,7 @@ func (ProjectApi) Create(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	user := middle.Auth.GetUserWithBlock(ctx, c)
-	// 校验权限 Check permissions
+	// 校验权限
 	if req.OwnerType == constants.OwnerTypeOrg {
 		// 如果为组织，需要具有组织管理员权限
 		org, err := store.Org.GetOrgById(req.OwnerID)
@@ -161,7 +162,7 @@ func (ProjectApi) Update(ctx context.Context, c *app.RequestContext) {
 		resps.BadRequest(c, resps.ParameterError)
 		return
 	}
-	// 校验项目名称是否合法 Check if the project name is valid
+	// 校验项目名称是否合法
 	if !utils.IsValidEntityName(*req.Name) {
 		resps.BadRequest(c, "Project name is invalid")
 		return
@@ -171,7 +172,7 @@ func (ProjectApi) Update(ctx context.Context, c *app.RequestContext) {
 		resps.NotFound(c, resps.TargetNotFound)
 		return
 	}
-	// 更新数据 Update data
+	// 更新数据
 	project.Description = *req.Description
 	project.DisplayName = req.DisplayName
 	project.Name = *req.Name
@@ -245,14 +246,14 @@ func (ProjectApi) AddOwner(ctx context.Context, c *app.RequestContext) {
 		resps.NotFound(c, resps.TargetNotFound)
 		return
 	}
-	// 判断用户是否已存在权限列表 Check if the user already exists in the permission list
+	// 判断用户是否已存在权限列表
 	for _, owner := range project.Owners {
 		if owner.ID == user.ID {
 			resps.BadRequest(c, "User already exists in the permission list")
 			return
 		}
 	}
-	// 添加用户	Add user
+	// 添加用户
 	if err := store.Project.AddOwner(project, user); err != nil {
 		resps.InternalServerError(c, resps.ParameterError)
 		return
@@ -274,13 +275,13 @@ func (ProjectApi) DeleteOwner(ctx context.Context, c *app.RequestContext) {
 		resps.BadRequest(c, resps.ParameterError)
 		return
 	}
-	// 查询用户 Query user
+	// 查询用户
 	user, err := store.User.GetByID(req.UserID)
 	if err != nil || user == nil {
 		resps.NotFound(c, resps.TargetNotFound)
 		return
 	}
-	// 删除用户 Delete user
+	// 删除用户
 	if err := store.Project.DeleteOwner(project, user); err != nil {
 		resps.InternalServerError(c, resps.ParameterError)
 		return

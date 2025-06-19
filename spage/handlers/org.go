@@ -121,7 +121,7 @@ func (OrgApi) GetOrganizationProject(ctx context.Context, c *app.RequestContext)
 	resps.Ok(c, resps.OK, map[string]any{
 		"projects": func() (projectDTOs []ProjectDTO) {
 			for _, project := range projects {
-				projectDTOs = append(projectDTOs, Project.toDTO(&project, false)) // 这里naloveyuki尝试修复了下gitd7b49ff的问题
+				projectDTOs = append(projectDTOs, Project.toDTO(&project, false))
 			}
 			return
 		}(),

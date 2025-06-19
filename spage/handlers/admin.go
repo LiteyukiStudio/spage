@@ -17,7 +17,6 @@ type adminApi struct{}
 var Admin = adminApi{}
 
 // CreateUser 创建用户
-// Create User
 func (adminApi) CreateUser(ctx context.Context, c *app.RequestContext) {
 	var userDTO *UserDTO
 	err := c.BindJSON(&userDTO)

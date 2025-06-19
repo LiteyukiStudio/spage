@@ -14,7 +14,6 @@ type PasswordType struct {
 var Password = PasswordType{}
 
 // HashPassword 密码哈希函数
-// hash password function
 func (u *PasswordType) HashPassword(password string, salt string) (string, error) {
 	saltedPassword := Password.addSalt(password, salt)
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(saltedPassword), bcrypt.DefaultCost)
@@ -56,7 +55,6 @@ func (u *PasswordType) CheckPasswordComplexity(password string, level int) bool 
 	}
 
 	// 定义各种字符类型的检查标志
-	// Define flags for checking various character types
 	var (
 		hasLower   bool
 		hasUpper   bool
