@@ -35,6 +35,7 @@ spage:
 	-X '$(GO_PKG_ROOT)/config.Version=$${VERSION}'" \
 	-o build/$${OUTNAME} $(GO_ENTRYPOINT_SERVER) \
 	)
+	
 
 .PHONY: spage-container
 spage-container: web spage

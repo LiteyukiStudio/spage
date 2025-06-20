@@ -33,7 +33,7 @@ type DBConfig struct {
 // loadDBConfig 从配置文件加载数据库配置
 func loadDBConfig() DBConfig {
 	return DBConfig{
-		Driver:   config.GetString("database.driver", "postgres"),
+		Driver:   config.GetString("database.driver", "sqlite"),
 		Path:     config.GetString("database.path", "./data/data.db"),
 		Host:     config.GetString("database.host", "postgres"),
 		Port:     config.GetInt("database.port", 5432),
