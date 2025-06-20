@@ -9,7 +9,7 @@ ZIGARCH=$(shell \
     arch="$(GOARCH)"; \
     if [ "$$arch" = "amd64" ]; then echo "x86_64"; \
     elif [ "$$arch" = "arm64" ]; then echo "aarch64"; \
-    elif [ "$$arch" = "386" ]; then echo "i386"; \
+    elif [ "$$arch" = "386" ]; then echo "x86"; \
     elif [ "$$arch" = "arm" ]; then echo "arm"; \
     else echo "$$arch"; fi \
 )
