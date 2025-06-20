@@ -85,13 +85,7 @@ jobs:
       matrix:
         include: [
           { goos: "darwin", goarch: "amd64", goamd64: "v1", output: "amd64-v1" },
-          { goos: "darwin", goarch: "amd64", goamd64: "v3", output: "amd64-v3" },
           { goos: "darwin", goarch: "arm64", output: "arm64" },
-          { goos: "freebsd", goarch: "amd64", goamd64: "v1", output: "amd64-v1" },
-          { goos: "freebsd", goarch: "amd64", goamd64: "v3", output: "amd64-v3" },
-          { goos: "freebsd", goarch: "arm64", output: "arm64" },
-          { goos: "freebsd", goarch: "386", output: "386" },
-          { goos: "freebsd", goarch: "arm", output: "arm" },
           { goos: "linux", goarch: "amd64", goamd64: "v1", output: "amd64-v1" },
           { goos: "linux", goarch: "amd64", goamd64: "v3", output: "amd64-v3" },
           { goos: "linux", goarch: "arm64", output: "arm64" },
