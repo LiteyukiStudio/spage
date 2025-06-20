@@ -13,7 +13,7 @@ env:
   BIN_OUT: build
   FRONTEND_DIR: web-src
   # for container build
-  CONTAINER_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm,linux/ppc64le,linux/s390x
+  CONTAINER_PLATFORMS: linux/amd64,linux/arm64,linux/386,linux/arm
   REG_GHCR: ghcr.io
   REG_DOCKERHUB: docker.io
   REG_LCR: reg.liteyuki.org
