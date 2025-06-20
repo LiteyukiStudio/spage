@@ -5,6 +5,33 @@ GO_ENTRYPOINT_AGENT ?= ./cmd/agent
 
 GOOS    ?= $(shell go env GOOS)
 GOARCH  ?= $(shell go env GOARCH)
+ZIGARCH=$(shell \
+    arch="$(GOARCH)"; \
+    if [ "$$arch" = "amd64" ]; then echo "x86_64"; \
+    elif [ "$$arch" = "arm64" ]; then echo "aarch64"; \
+    elif [ "$$arch" = "386" ]; then echo "i386"; \
+    elif [ "$$arch" = "arm" ]; then echo "arm"; \
+    else echo "$$arch"; fi \
+)
+
+ZIGOS=$(shell \
+    os="$(GOOS)"; \
+    if [ "$$os" = "windows" ]; then echo "windows"; \
+    elif [ "$$os" = "darwin" ]; then echo "macos"; \
+    elif [ "$$os" = "linux" ]; then echo "linux"; \
+    elif [ "$$os" = "freebsd" ]; then echo "freebsd"; \
+    else echo "$$os"; fi \
+)
+
+ZIGABI=$(shell \
+    if [ "$(GOOS)" = "linux" ]; then \
+        if [ "$(GOARCH)" = "arm" ]; then echo "gnueabihf"; \
+        else echo "gnu"; fi; \
+    elif [ "$(GOOS)" = "windows" ]; then echo "gnu"; \
+    else echo "none"; fi \
+)
+
+ZIGTARGET=$(ZIGARCH)-$(ZIGOS)-$(ZIGABI)
 
 .PHONY: web
 web:
@@ -18,21 +45,6 @@ proto:
 
 .PHONY: spage
 spage:
-	# zig cc 
-	ZIGARCH=$(GOARCH) \
-	if [ "$(GOARCH)" = "amd64" ]; then ZIGARCH=x86_64; fi; \
-	if [ "$(GOARCH)" = "arm64" ]; then ZIGARCH=aarch64; fi; \
-	if [ "$(GOARCH)" = "386" ]; then ZIGARCH=i386; fi; \
-	if [ "$(GOARCH)" = "arm" ]; then ZIGARCH=arm; fi; \
-
-	ZIGOS=$(GOOS) \
-	if [ "$(GOOS)" = "windows" ]; then ZIGOS=windows; fi; \
-	if [ "$(GOOS)" = "darwin" ]; then ZIGOS=macos; fi; \
-	if [ "$(GOOS)" = "linux" ]; then ZIGOS=linux; fi; \
-	if [ "$(GOOS)" = "freebsd" ]; then ZIGOS=freebsd; fi; \
-	
-	ZIGTARGET=$${ZIGOS}-$${ZIGARCH} \
-
 	@mkdir -p build
 	@( \
 	OUTNAME=$(BIN_NAME)-$(GOOS)-$(GOARCH); \
