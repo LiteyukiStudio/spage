@@ -140,11 +140,8 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          GOAMD64: ${{ matrix.goamd64 }}
-          GOARM: ${{ matrix.goarm }}
-          GO386: ${{ matrix.go386 }}
         run: |
-          make ${{ env.BIN_NAME }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} GOAMD64=${{ matrix.goamd64 }} GOARM=${{ matrix.goarm }} GO386=${{ matrix.go386 }}
+          make ${{ env.BIN_NAME }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }}
 
       - name: List build dir
         run: ls -lh build/
@@ -152,7 +149,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.BIN_NAME }}-${{ matrix.goos }}-${{ matrix.output }}
+          name: ${{ env.BIN_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}
           path: build/*
           retention-days: 30
 
