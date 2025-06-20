@@ -107,8 +107,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Setup zig
-        run: |
-          snap install zig --classic --beta
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: '0.11.0'
 
       - name: Setup Go
         uses: actions/setup-go@v5
