@@ -8,7 +8,6 @@ GOARCH  ?= $(shell go env GOARCH)
 GOARM   ?=
 GOAMD64 ?=
 GO386   ?=
-output  ?= $(GOARCH)
 
 .PHONY: web
 web:
@@ -24,7 +23,7 @@ proto:
 spage:
 	@mkdir -p build
 	@( \
-	OUTNAME=$(BIN_NAME)-$(GOOS)-$(output); \
+	OUTNAME=$(BIN_NAME)-$(GOOS)-$(GOARCH); \
 	VERSION=$$(git describe --tags --always 2>/dev/null || echo dev); \
 	echo "Building $$OUTNAME:$$VERSION for $(GOOS)/$(GOARCH)"; \
 	if [ "$(GOOS)" = "windows" ]; then OUTNAME=$${OUTNAME}.exe; fi; \
@@ -39,13 +38,13 @@ spage:
 .PHONY: spage-container
 spage-container: web spage
 	@echo "Building container image for $(GOOS)/$(GOARCH)"; \
-	docker build -t $(BIN_NAME):$(GOOS)-$(output) --build-arg GOOS=$(GOOS) --build-arg GOARCH=$(GOARCH) .
+	docker build -t $(BIN_NAME):$(GOOS)-$(GOARCH) --build-arg GOOS=$(GOOS) --build-arg GOARCH=$(GOARCH) .
 
 # Apple native Linux container build, macOS 26 only
 .PHONY: spage-apple-container
 spage-apple-container: web spage
 	@echo "Building Apple container image for $(GOOS)/$(GOARCH)"; \
-	container build -t $(BIN_NAME):$(GOOS)-$(output) --build-arg GOOS=$(GOOS) --build-arg GOARCH=$(GOARCH)
+	container build -t $(BIN_NAME):$(GOOS)-$(GOARCH) --build-arg GOOS=$(GOOS) --build-arg GOARCH=$(GOARCH)
 
 .PHONY: agent
 agent:
