@@ -2,17 +2,17 @@ package handlers
 
 import (
 	"context"
+	"strconv"
+
 	"github.com/LiteyukiStudio/spage/constants"
+	"github.com/LiteyukiStudio/spage/resps"
 	"github.com/LiteyukiStudio/spage/spage/middle"
 	"github.com/LiteyukiStudio/spage/spage/models"
 	"github.com/LiteyukiStudio/spage/spage/store"
-	"github.com/LiteyukiStudio/spage/utils"
-	"strconv"
-
-	"github.com/LiteyukiStudio/spage/resps"
 	"github.com/cloudwego/hertz/pkg/app"
 )
 
+// TODO 给项目name更新添加可用性检查，函数在store
 type ProjectApi struct {
 }
 
@@ -70,12 +70,12 @@ func (ProjectApi) UserProjectAuth(ctx context.Context, c *app.RequestContext) {
 		c.Abort()
 		return
 	}
-	// 项目权限判断 Project authorization check
+	// 项目权限判断
 	if store.Project.UserIsOwner(project, user.ID) {
 		context.WithValue(ctx, "userProject", project)
 		return
 	}
-	// 组织权限判断 Organization authorization check
+	// 组织权限判断
 	if project.OwnerType == constants.OwnerTypeOrg {
 		// 组织查询
 		org, err := store.Org.GetOrgById(project.OwnerID)
@@ -91,7 +91,7 @@ func (ProjectApi) UserProjectAuth(ctx context.Context, c *app.RequestContext) {
 		} else {
 			authType = "owner"
 		}
-		if authType == store.Org.GetUserAuth(org, user.ID) {
+		if authType == store.Org.GetUserRole(org, user.ID) {
 			context.WithValue(ctx, "userOrg", org)
 			context.WithValue(ctx, "userProject", project)
 			return
@@ -114,26 +114,24 @@ func (ProjectApi) Create(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	// 校验项目名称是否合法
-	if !utils.IsValidEntityName(req.Name) {
-		resps.BadRequest(c, "Project name is invalid")
+	if !store.Project.CheckNameAvailable(req.OwnerType, req.OwnerID, req.Name) {
+		resps.BadRequest(c, "Project name is invalid or already exists")
 		return
 	}
-	user := middle.Auth.GetUserWithBlock(ctx, c)
-	// 校验权限 Check permissions
-	if req.OwnerType == constants.OwnerTypeOrg {
-		// 如果为组织，需要具有组织管理员权限
-		org, err := store.Org.GetOrgById(req.OwnerID)
-		if err != nil || org == nil {
-			resps.InternalServerError(c, resps.ParameterError)
+	currentUser := middle.Auth.GetUserWithBlock(ctx, c)
+	switch req.OwnerType {
+	case constants.OwnerTypeUser:
+		if req.OwnerID != currentUser.ID {
+			resps.BadRequest(c, resps.ParameterError)
 			return
 		}
-		if store.Org.GetUserAuth(org, user.ID) != "member" {
-			resps.Forbidden(c, resps.PermissionDenied)
+	case constants.OwnerTypeOrg:
+		isOrgMemberPass, err := isOrgMember(currentUser.ID, req.OwnerID)
+		if !isOrgMemberPass || err != nil {
+			resps.BadRequest(c, resps.ParameterError)
+			return
 		}
-	} else if req.OwnerType == constants.OwnerTypeUser {
-		// 如果为用户，仅允许为自己添加
-		req.OwnerID = user.ID
-	} else {
+	default:
 		resps.BadRequest(c, resps.ParameterError)
 		return
 	}
@@ -143,7 +141,9 @@ func (ProjectApi) Create(ctx context.Context, c *app.RequestContext) {
 		Name:        req.Name,
 		OwnerID:     req.OwnerID,
 		OwnerType:   req.OwnerType,
-		Owners:      []models.User{*user},
+		Owners:      []models.User{*currentUser},
+		Members:     []*models.User{currentUser},
+		IsPrivate:   req.IsPrivate,
 	}
 	if err := store.Project.Create(project); err != nil {
 		resps.InternalServerError(c, resps.ParameterError)
@@ -161,17 +161,17 @@ func (ProjectApi) Update(ctx context.Context, c *app.RequestContext) {
 		resps.BadRequest(c, resps.ParameterError)
 		return
 	}
-	// 校验项目名称是否合法 Check if the project name is valid
-	if !utils.IsValidEntityName(*req.Name) {
-		resps.BadRequest(c, "Project name is invalid")
-		return
-	}
 	project := getProject(ctx)
 	if project == nil {
 		resps.NotFound(c, resps.TargetNotFound)
 		return
 	}
-	// 更新数据 Update data
+	// 校验项目名称是否合法
+	if req.Name != nil && !store.Project.CheckNameAvailable(project.OwnerType, project.OwnerID, *req.Name) {
+		resps.BadRequest(c, "Project name is invalid or already exists")
+		return
+	}
+	// 更新数据
 	project.Description = *req.Description
 	project.DisplayName = req.DisplayName
 	project.Name = *req.Name
@@ -245,14 +245,14 @@ func (ProjectApi) AddOwner(ctx context.Context, c *app.RequestContext) {
 		resps.NotFound(c, resps.TargetNotFound)
 		return
 	}
-	// 判断用户是否已存在权限列表 Check if the user already exists in the permission list
+	// 判断用户是否已存在权限列表
 	for _, owner := range project.Owners {
 		if owner.ID == user.ID {
 			resps.BadRequest(c, "User already exists in the permission list")
 			return
 		}
 	}
-	// 添加用户	Add user
+	// 添加用户
 	if err := store.Project.AddOwner(project, user); err != nil {
 		resps.InternalServerError(c, resps.ParameterError)
 		return
@@ -274,13 +274,13 @@ func (ProjectApi) DeleteOwner(ctx context.Context, c *app.RequestContext) {
 		resps.BadRequest(c, resps.ParameterError)
 		return
 	}
-	// 查询用户 Query user
+	// 查询用户
 	user, err := store.User.GetByID(req.UserID)
 	if err != nil || user == nil {
 		resps.NotFound(c, resps.TargetNotFound)
 		return
 	}
-	// 删除用户 Delete user
+	// 删除用户
 	if err := store.Project.DeleteOwner(project, user); err != nil {
 		resps.InternalServerError(c, resps.ParameterError)
 		return
@@ -318,70 +318,36 @@ func (ProjectApi) GetSites(ctx context.Context, c *app.RequestContext) {
 	})
 }
 
-// HasReadPermissionMiddleware 是否为项目成员中间件
-func (ProjectApi) HasReadPermissionMiddleware(ctx context.Context, c *app.RequestContext) {
-	projectIdString := c.Param("id")
-	projectId, err := strconv.Atoi(projectIdString)
+// IsProjectOwnerMiddleware 项目所有者中间件
+func (ProjectApi) IsProjectOwnerMiddleware(ctx context.Context, c *app.RequestContext) {
+	currentUser := middle.Auth.GetUserWithBlock(ctx, c)
+	projectIdStr := c.Param("id")
+	if projectIdStr == "" {
+		resps.BadRequest(c, resps.ParameterError)
+		c.Abort()
+		return
+	}
+	projectId, err := strconv.Atoi(projectIdStr)
 	if err != nil {
 		resps.BadRequest(c, resps.ParameterError)
+		c.Abort()
 		return
 	}
-	crtUser := middle.Auth.GetUserWithBlock(ctx, c)
-	pass, err := hasReadPermission(crtUser.ID, uint(projectId))
-	if !pass || err != nil {
-		resps.NotFound(c, resps.TargetNotFound)
-		return
-	}
-	c.Next(ctx)
-}
-
-func hasReadPermission(userId, projectId uint) (bool, error) {
-	project, err := store.Project.GetByID(projectId)
+	isOwner, err := isProjectOwner(currentUser.ID, uint(projectId))
 	if err != nil {
-		return false, err
-	}
-	// 用户是项目主人
-	isProjectOwnerPass, _ := hasWritePermission(userId, projectId)
-	if isProjectOwnerPass {
-		return true, nil
-	}
-	// 用户在项目成员列表中
-	for _, member := range project.Members {
-		if member.ID == userId {
-			return true, nil
-		}
-	}
-	// 组织项目 - 组织成员也可读
-	if project.OwnerType == constants.OwnerTypeOrg {
-		org, _ := store.Org.GetOrgById(project.OwnerID)
-		for _, member := range org.Members {
-			if member.ID == userId {
-				return true, nil
-			}
-		}
-	}
-	// 若不为私有则可公开访问
-	return !project.IsPrivate, nil
-}
-
-// HasWritePermissionMiddleware 是否为项目所有者中间件
-func (ProjectApi) HasWritePermissionMiddleware(ctx context.Context, c *app.RequestContext) {
-	projectIdString := c.Param("id")
-	projectId, err := strconv.Atoi(projectIdString)
-	if err != nil {
-		resps.BadRequest(c, resps.ParameterError)
+		resps.InternalServerError(c, err.Error())
+		c.Abort()
 		return
 	}
-	crtUser := middle.Auth.GetUserWithBlock(ctx, c)
-	pass, err := hasWritePermission(crtUser.ID, uint(projectId))
-	if !pass || err != nil {
+	if !isOwner {
 		resps.Forbidden(c, resps.PermissionDenied)
+		c.Abort()
 		return
 	}
 	c.Next(ctx)
 }
 
-func hasWritePermission(userId, projectId uint) (bool, error) {
+func isProjectOwner(userId, projectId uint) (bool, error) {
 	project, err := store.Project.GetByID(projectId)
 	if err != nil {
 		return false, err
@@ -399,7 +365,102 @@ func hasWritePermission(userId, projectId uint) (bool, error) {
 	// 情况3: 组织项目 - 检查用户是否为组织所有者
 	if project.OwnerType == constants.OwnerTypeOrg {
 		org, _ := store.Org.GetOrgById(project.OwnerID)
-		if org != nil && store.Org.GetUserAuth(org, userId) == "owner" {
+		if org != nil && store.Org.GetUserRole(org, userId) == constants.OrgRoleOwner {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// IsProjectMemberMiddleware 项目成员中间件
+func (ProjectApi) IsProjectMemberMiddleware(ctx context.Context, c *app.RequestContext) {
+	currentUser := middle.Auth.GetUserWithBlock(ctx, c)
+	projectIdStr := c.Param("id")
+	if projectIdStr == "" {
+		resps.BadRequest(c, resps.ParameterError)
+		c.Abort()
+		return
+	}
+	projectId, err := strconv.Atoi(projectIdStr)
+	if err != nil {
+		resps.BadRequest(c, resps.ParameterError)
+		c.Abort()
+		return
+	}
+	isMember, err := isProjectMember(currentUser.ID, uint(projectId))
+	if err != nil {
+		resps.InternalServerError(c, err.Error())
+		c.Abort()
+		return
+	}
+	if !isMember {
+		resps.Forbidden(c, resps.PermissionDenied)
+		c.Abort()
+		return
+	}
+	c.Next(ctx)
+}
+
+func isProjectMember(userId, projectId uint) (bool, error) {
+	// 情况1: 用户是项目直接拥有者
+	isOwner, _ := isProjectOwner(userId, projectId)
+	if isOwner {
+		return true, nil
+	}
+	// 用户在项目成员列表中
+	project, err := store.Project.GetByID(projectId)
+	if err != nil {
+		return false, err
+	}
+	for _, member := range project.Members {
+		if member.ID == userId {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// HasReadPermissionMiddleware 项目读取权限中间件
+func (ProjectApi) HasReadPermissionMiddleware(ctx context.Context, c *app.RequestContext) {
+	currentUser := middle.Auth.GetUserWithBlock(ctx, c)
+	projectIdStr := c.Param("id")
+	if projectIdStr == "" {
+		resps.BadRequest(c, resps.ParameterError)
+		c.Abort()
+		return
+	}
+	projectId, err := strconv.Atoi(projectIdStr)
+	if err != nil {
+		resps.BadRequest(c, resps.ParameterError)
+		c.Abort()
+		return
+	}
+	hasPermission, err := hasReadPermission(currentUser.ID, uint(projectId))
+	if err != nil {
+		resps.InternalServerError(c, err.Error())
+		c.Abort()
+		return
+	}
+	if !hasPermission {
+		resps.Forbidden(c, resps.PermissionDenied)
+		c.Abort()
+		return
+	}
+	c.Next(ctx)
+}
+
+func hasReadPermission(userId, projectId uint) (bool, error) {
+	isMember, _ := isProjectMember(userId, projectId)
+	if isMember {
+		return true, nil
+	}
+	// 用户是组织的成员，也对组织项目可见，但没有其他权限
+	org, err := store.Org.GetOrgById(projectId)
+	if err != nil {
+		return false, err
+	}
+	for _, member := range org.Members {
+		if member.ID == userId {
 			return true, nil
 		}
 	}

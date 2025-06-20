@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/LiteyukiStudio/spage/config"
 	"github.com/LiteyukiStudio/spage/constants"
@@ -12,6 +13,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"net/url"
 )
 
@@ -132,18 +134,33 @@ func (oidcType) LoginOidcConfig(ctx context.Context, c *app.RequestContext) {
 		resps.InternalServerError(c, "获取用户信息失败")
 		return
 	}
-	// 处理用户登录
-	user, err := store.User.FindOrCreateByEmail(userInfo.Email, userInfo.Name)
-	if err != nil {
-		logrus.Errorf("用户处理失败: %v", err)
-		resps.InternalServerError(c, "用户处理失败")
-		return
+	// 检查用户名是否允许，不允许的话，在后面加上随机字符串
+	if !store.Owner.IsNameAvailable(userInfo.Name) {
+		userInfo.Name = utils.GenerateRandomString(4) + userInfo.Name
+		logrus.Warnf("用户名 %s 已存在，已更改为 %s", userInfo.Name, userInfo.Name)
+	}
+	// 检查用户邮箱是否允许
+	user, err := store.User.GetByEmail(userInfo.Email)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		if !config.AllowRegisterByOidc {
+			logrus.Warnf("用户 %s 不存在且不允许通过OIDC注册", userInfo.Email)
+			resps.Forbidden(c, "不允许通过OIDC注册")
+			return
+		}
 	}
 	// 校验允许组
 	if !matchGroups(userInfo.Groups, oidcConfig.AllowedGroups, true) {
 		resps.Forbidden(c, "用户不在允许的组中")
 		return
 	}
+	// 处理用户登录
+	user, err = store.User.FindOrCreateByEmail(userInfo.Email, userInfo.Name)
+	if err != nil {
+		logrus.Errorf("用户处理失败: %v", err)
+		resps.InternalServerError(c, "用户处理失败")
+		return
+	}
+	// 校验管理员组
 	if matchGroups(userInfo.Groups, oidcConfig.AdminGroups, false) {
 		user.Role = constants.GlobalRoleAdmin
 		err = store.User.Update(user)

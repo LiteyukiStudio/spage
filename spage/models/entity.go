@@ -7,7 +7,7 @@ import (
 // User 用户模型
 type User struct {
 	gorm.Model
-	Name          string          `gorm:"not null;unique"`                 // 用户的唯一名称 User's unique name
+	Name          string          `gorm:"not null;uniqueIndex"`            // 用户的唯一名称 User's unique name
 	DisplayName   *string         `gorm:"column:display_name"`             // 用户的显示名称 User's display name
 	Email         *string         `gorm:"unique"`                          // 用户的电子邮件地址，只有用户的电子邮件地址是唯一的（用于 oidc 身份验证） User's email address, only the user's email address is unique (used for oidc authentication)
 	Description   string          `gorm:"default:'No description.'"`       // 用户描述 User description
@@ -28,7 +28,7 @@ func (User) TableName() string {
 // Organization 组织模型
 type Organization struct {
 	gorm.Model
-	Name         string  `gorm:"not null;unique"`                 // 组织的唯一名称 Organization's unique name
+	Name         string  `gorm:"not null;uniqueIndex"`            // 组织的唯一名称 Organization's unique name
 	DisplayName  *string `gorm:"column:display_name"`             // 组织的显示名称 Organization's display name
 	Email        *string `gorm:"column:email"`                    // 组织的电子邮件地址 Organization's email address
 	Description  string  `gorm:"default:'No description.'"`       // 组织描述 Organization description
@@ -46,7 +46,7 @@ func (Organization) TableName() string {
 // Project 项目模型
 type Project struct {
 	gorm.Model
-	Name        string  `gorm:"not null;unique"`            // 项目的唯一名称 Project's unique name
+	Name        string  `gorm:"not null"`                   // 项目在一个主体下的唯一名称 Project's unique name
 	DisplayName *string `gorm:"column:display_name"`        // 项目的显示名称 Project's display name
 	Description string  `gorm:"default:'No description.'"`  // 项目描述 Project description
 	OwnerID     uint    `gorm:"not null"`                   // 所有者 ID（用户 ID 或组织 ID） Owner ID (user ID or organization ID)

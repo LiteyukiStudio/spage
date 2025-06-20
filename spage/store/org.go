@@ -46,16 +46,16 @@ func (o *orgType) OrgNameIsExist(name string) bool {
 	return count > 0
 }
 
-// GetUserAuth 获取用户在组织中的权限
-func (o *orgType) GetUserAuth(org *models.Organization, userID uint) (auth string) {
+// GetUserRole 获取用户在组织中的权限
+func (o *orgType) GetUserRole(org *models.Organization, userID uint) (auth string) {
 	for _, owner := range org.Owners {
 		if owner.ID == userID {
-			return "owner"
+			return constants.OrgRoleOwner
 		}
 	}
 	for _, member := range org.Members {
 		if member.ID == userID {
-			return "member"
+			return constants.OrgRoleMember
 		}
 	}
 	return ""

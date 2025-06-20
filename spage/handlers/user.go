@@ -189,7 +189,7 @@ func (userApi) Register(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	// 判断用户名是否存在
-	if store.User.IsNameExist(request.Username) {
+	if store.Owner.IsNameAvailable(request.Username) {
 		resps.BadRequest(c, "Username already exists")
 		return
 	}
@@ -224,7 +224,7 @@ func (userApi) UpdateUser(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 	// 校验用户名称是否合法
-	if !utils.IsValidEntityName(userDTO.Name) {
+	if !store.Owner.IsNameAvailable(userDTO.Name) {
 		resps.BadRequest(c, "Username is invalid")
 		return
 	}

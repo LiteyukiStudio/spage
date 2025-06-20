@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/LiteyukiStudio/spage/constants"
 	"github.com/LiteyukiStudio/spage/spage/models"
+	"github.com/LiteyukiStudio/spage/utils"
 )
 
 type projectType struct {
@@ -81,4 +82,22 @@ func (p *projectType) GetSiteList(project *models.Project, page, limit int) (sit
 		project.ID,
 	)
 	return
+}
+
+// CheckNameAvailable 检查项目名称是否可用，同一个组织或者用户下不应有重复项目名称
+func (p *projectType) CheckNameAvailable(ownerType string, ownerID uint, name string) bool {
+	// 验证名称格式是否合法
+	if !utils.IsValidEntityName(name) {
+		return false
+	}
+	// 查询该所有者下是否已存在同名项目
+	var count int64
+	err := DB.Model(&models.Project{}).
+		Where("owner_type = ? AND owner_id = ? AND name = ?", ownerType, ownerID, name).
+		Count(&count).Error
+	if err != nil {
+		return false
+	}
+	// 如果count为0，表示名称可用
+	return count == 0
 }

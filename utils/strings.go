@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// IsValidEntityName 检查字符串是否符合Git仓库命名规范
+// IsValidEntityName 检查字符串是否符合Git仓库命名规范，该函数只应被检查owner和project，site的方法所调用，不能被其他地方调用
 func IsValidEntityName(name string) bool {
 	// 仓库名长度限制
 	if len(name) <= 4 || len(name) > 20 {

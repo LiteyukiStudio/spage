@@ -2,14 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-
 import { t } from "i18next";
 import { CircleUserRound, ShieldCheck } from "lucide-react";
-// 移除 Next.js 相关导入
-// import Image from "next/image";
-// import { useRouter } from "next/navigation";
-// import { useSearchParams } from "next/navigation";
-
 import { getCaptchaConfig, getOidcConfig, getUser, login } from "@/api/user.api";
 import { OidcConfig } from "@/api/user.models";
 import AIOCaptchaWidget from "@/components/captcha/AIOCaptcha";
@@ -21,11 +15,11 @@ export default function LoginView() {
   // 替换 Next.js 路由为 React Router
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // 使用 URLSearchParams 解析查询参数
   const searchParams = new URLSearchParams(location.search);
   const redirectUrl = searchParams.get("redirect") || "/";
-  
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -38,7 +32,6 @@ export default function LoginView() {
   useEffect(() => {
     getUser()
       .then(() => {
-        // 使用 navigate 替代 router.push
         navigate(redirectUrl);
       })
       .catch((error) => {
@@ -57,7 +50,7 @@ export default function LoginView() {
       })
       .catch(() => setError("login.captcha.fetchFailed"));
   }, [redirectUrl, navigate]);
-
+  console.log("captcha Token:", captchaToken);
   useEffect(() => {
     getOidcConfig()
       .then((response) => {
@@ -92,9 +85,8 @@ export default function LoginView() {
         className={
           isMobile
             ? "w-full min-h-screen flex flex-col justify-center px-10 bg-white dark:bg-gray-800"
-            : "w-[400px] h-[420px] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl px-8 py-55 flex flex-col justify-center"
+            : "w-[400px] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl px-8 py-8 flex flex-col justify-center"
         }
-        style={isMobile ? {} : { minWidth: 320, minHeight: 380 }}
       >
         <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-6 tracking-tight">
           {t("login.login")}
@@ -147,7 +139,7 @@ export default function LoginView() {
         <div
           className={`flex justify-center (${![CaptchaProvider.DISABLE, CaptchaProvider.RECAPTCHA].includes(captchaProps?.provider ?? CaptchaProvider.DISABLE) ? "my-4" : ""})`}
         >
-          <AIOCaptchaWidget
+          {captchaProps && <AIOCaptchaWidget
             key={captchaKey}
             {...(captchaProps || {
               provider: CaptchaProvider.DISABLE,
@@ -159,7 +151,7 @@ export default function LoginView() {
                 setCaptchaKey(Date.now());
               },
             })}
-          />
+          />}
         </div>
         {error && <div className="text-red-500 text-sm text-center mb-2">{t(error)}</div>}
         {/* 登录按钮 */}
@@ -185,10 +177,10 @@ export default function LoginView() {
             <div className="flex items-center justify-center gap-2">
               <div className="flex-shrink-0 w-6 h-6 relative">
                 {/* 替换 Next.js Image 为常规 img 标签 */}
-                <img 
-                  src={config.icon} 
-                  alt={config.displayName} 
-                  className="object-contain w-full h-full" 
+                <img
+                  src={config.icon}
+                  alt={config.displayName}
+                  className="object-contain w-full h-full"
                 />
               </div>
               <span className="text-base">

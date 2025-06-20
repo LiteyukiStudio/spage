@@ -28,7 +28,7 @@ spage:
 	VERSION=$$(git describe --tags --always 2>/dev/null || echo dev); \
 	echo "Building $$OUTNAME:$$VERSION for $(GOOS)/$(GOARCH)"; \
 	if [ "$(GOOS)" = "windows" ]; then OUTNAME=$${OUTNAME}.exe; fi; \
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) GOAMD64=$(GOAMD64) GO386=$(GO386) \
+	CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) GOAMD64=$(GOAMD64) GO386=$(GO386) \
 	go build -trimpath \
 	-ldflags "-X '$(GO_PKG_ROOT)/config.CommitHash=$$(git rev-parse HEAD)' \
 	-X '$(GO_PKG_ROOT)/config.BuildTime=$$(date -u +%Y-%m-%dT%H:%M:%SZ)' \
@@ -40,6 +40,12 @@ spage:
 spage-container: web spage
 	@echo "Building container image for $(GOOS)/$(GOARCH)"; \
 	docker build -t $(BIN_NAME):$(GOOS)-$(output) --build-arg GOOS=$(GOOS) --build-arg GOARCH=$(GOARCH) .
+
+# Apple native Linux container build, macOS 26 only
+.PHONY: spage-apple-container
+spage-apple-container: web spage
+	@echo "Building Apple container image for $(GOOS)/$(GOARCH)"; \
+	container build -t $(BIN_NAME):$(GOOS)-$(output) --build-arg GOOS=$(GOOS) --build-arg GOARCH=$(GOARCH)
 
 .PHONY: agent
 agent:

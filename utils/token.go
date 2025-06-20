@@ -17,9 +17,9 @@ var Token = TokenType{}
 
 type Claims struct {
 	jwt.RegisteredClaims
-	UserID   uint `json:"user_id"`  // 用户ID，用于身份验证 Verify user identity using the User ID
-	TokenID  uint `json:"token_id"` // 令牌ID，用于服务端会话维持 Keep the token ID for server-side session maintenance
-	Stateful bool `json:"stateful"` // 是否为有状态Token Whether it is a stateful Token
+	UserID   uint `json:"user_id"`  // 用户ID，用于身份验证
+	TokenID  uint `json:"token_id"` // 令牌ID，用于服务端会话维持
+	Stateful bool `json:"stateful"` // 是否为有状态Token
 }
 
 // GenerateRandomString 生成随机字符串

@@ -6,19 +6,22 @@ import (
 )
 
 func registerProjectGroup(group *route.RouterGroup) {
-	// TODO 整理project路由，使用读写检查中间件
 	projectGroup := group.Group("/project", handlers.Project.UserProjectAuth)
+	projectGroupWithOwner := group.Group("/project").Use(handlers.Project.IsProjectOwnerMiddleware)
+	projectGroupWithMember := group.Group("/project").Use(handlers.Project.IsProjectMemberMiddleware)
+	projectGroupWithReadPermission := group.Group("/project").Use(handlers.Project.HasReadPermissionMiddleware)
 	{
-		projectGroup.POST("", handlers.Project.Create)                  // 创建项目 Create project
-		projectGroup.PUT("/:id", handlers.Project.Update)               // 更新项目 Update project
-		projectGroup.DELETE("/:id", handlers.Project.Delete)            // 删除项目 Delete project
-		projectGroup.GET("/:id", handlers.Project.Info)                 // 获取项目信息 Get project info
-		projectGroup.GET("/:id/owners", handlers.Project.GetOwners)     // 获取项目所有者 Get project owners
-		projectGroup.PUT("/:id/owner", handlers.Project.AddOwner)       // 更新项目所有者 Add project owner
-		projectGroup.DELETE("/:id/owner", handlers.Project.DeleteOwner) // 删除项目所有者 Delete project owner
-		projectGroup.GET("/:id/sites", handlers.Project.GetSites)       // 获取项目站点 Get project sites
-
+		projectGroup.POST("", handlers.Project.Create)                                // 创建项目 Create project
+		projectGroupWithMember.PUT("/:id", handlers.Project.Update)                   // 更新项目 Update project
+		projectGroupWithOwner.DELETE("/:id", handlers.Project.Delete)                 // 删除项目 Delete project
+		projectGroupWithReadPermission.GET("/:id", handlers.Project.Info)             // 获取项目信息 Get project info
+		projectGroupWithReadPermission.GET("/:id/owners", handlers.Project.GetOwners) // 获取项目所有者 Get project owners
+		projectGroupWithOwner.PUT("/:id/owner", handlers.Project.AddOwner)            // 更新项目所有者 Add project owner
+		projectGroupWithOwner.DELETE("/:id/owner", handlers.Project.DeleteOwner)      // 删除项目所有者 Delete project owner
+		projectGroupWithReadPermission.GET("/:id/sites", handlers.Project.GetSites)   // 获取项目站点 Get project sites
 	}
+
+	// TODO : 站点相关的路由需要在项目下
 	siteGroup := group.Group("/site", handlers.Site.SiteAuth)
 	{
 		siteGroup.POST("", handlers.Site.Create)                     // 创建站点 Create site

@@ -59,7 +59,7 @@ func (u *userType) GetByEmail(email string) (user *models.User, err error) {
 	return user, nil
 }
 
-// FindOrCreateByEmail 根据邮箱查找或创建用户
+// FindOrCreateByEmail 根据邮箱查找或创建用户，仅在用户不存在时name才会生效
 func (u *userType) FindOrCreateByEmail(email, name string) (*models.User, error) {
 	user := &models.User{}
 	// 尝试查找用户 Try to find user
