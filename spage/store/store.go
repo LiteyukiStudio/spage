@@ -3,17 +3,17 @@ package store
 import (
 	"errors"
 	"fmt"
-	"plugin"
-	"runtime"
-
 	"github.com/LiteyukiStudio/spage/config"
 	"github.com/LiteyukiStudio/spage/constants"
 	"github.com/LiteyukiStudio/spage/spage/models"
 	"github.com/LiteyukiStudio/spage/utils"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"os"
+	"path/filepath"
 )
 
 var DB *gorm.DB
@@ -61,7 +61,7 @@ func Init() error {
 		}
 		logrus.Infoln("postgres initialization succeeded", dbConfig)
 	case "sqlite":
-		if DB, err = InitSQLiteDynamic(dbConfig, gormConfig); err != nil {
+		if DB, err = InitSQLite(dbConfig.Path, gormConfig); err != nil {
 			return fmt.Errorf("sqlite initialization failed: %w", err)
 		}
 		logrus.Infoln("sqlite initialization succeeded", dbConfig)
@@ -106,36 +106,15 @@ func initPostgres(config DBConfig, gormConfig *gorm.Config) (db *gorm.DB, err er
 	return
 }
 
-func InitSQLiteDynamic(config DBConfig, gormConfig *gorm.Config) (*gorm.DB, error) {
-	// 根据操作系统选择插件后缀
-	var ext string
-	switch runtime.GOOS {
-	case "darwin":
-		ext = "dylib"
-	case "linux":
-		ext = "so"
-	default:
-		return nil, fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
+// InitSQLite 初始化 SQLite 连接
+func InitSQLite(path string, gormConfig *gorm.Config) (*gorm.DB, error) {
+	if path == "" {
+		path = "./data/data.db"
 	}
-	// 构建插件路径
-	pluginPath := fmt.Sprintf("./build/sqlite.%s", ext)
-	// 加载 SQLite 插件
-	plug, err := plugin.Open(pluginPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load SQLite plugin: %w", err)
+	// 创建 SQLite 数据库文件的目录
+	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed to create directory for SQLite database: %w", err)
 	}
-	// 查找导出的 Init 函数
-	symbol, err := plug.Lookup("InitSQLite")
-	logrus.Infof("Found symbol: %v", symbol)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find Init function in plugin: %w", err)
-	}
-	// 调试符号类型
-	// 转换为函数类型
-	initFunc, ok := symbol.(func(string, *gorm.Config) (*gorm.DB, error))
-	if !ok {
-		return nil, errors.New("invalid Init function signature in plugin")
-	}
-	// 调用插件中的 Init 函数
-	return initFunc(config.Path, gormConfig)
+	db, err := gorm.Open(sqlite.Open(path), gormConfig)
+	return db, err
 }
