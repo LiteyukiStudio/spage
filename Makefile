@@ -34,8 +34,10 @@ spage:
 	-X '$(GO_PKG_ROOT)/config.BuildTime=$$(date -u +%Y-%m-%dT%H:%M:%SZ)' \
 	-X '$(GO_PKG_ROOT)/config.Version=$${VERSION}'" \
 	-o build/$${OUTNAME} $(GO_ENTRYPOINT_SERVER) \
+	&& upx --lzma --best build/$${OUTNAME} \
 	)
 	
+
 
 .PHONY: spage-container
 spage-container: web spage
