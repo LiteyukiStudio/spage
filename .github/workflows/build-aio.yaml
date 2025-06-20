@@ -20,13 +20,14 @@ env:
   NAMESPACE_GHCR: liteyukistudio
   NAMESPACE_DOCKERHUB: liteyukistudio
   NAMESPACE_LCR: spage
-  # ARCH_MAP: |
-  #   amd64:amd64-v1
-  #   arm64:arm64
-  #   arm:armv7
-  #   386:386-sse2
-  #   ppc64le:ppc64le
-  #   s390x:s390x
+  ARCH_MAP: |
+    amd64:amd64-v1
+    arm64:arm64
+    arm:armv7
+    386:386-sse2
+    ppc64le:ppc64le
+    s390x:s390x
+  
 
 concurrency:
   group: "build-aio"
@@ -82,17 +83,35 @@ jobs:
       nightly: ${{ steps.version.outputs.nightly }}
     strategy:
       matrix:
-        include:
-          [
-            { goos: "darwin", goarch: "amd64" },
-            { goos: "darwin", goarch: "arm64" },
-            { goos: "linux", goarch: "amd64" },
-            { goos: "linux", goarch: "arm64" },
-            { goos: "linux", goarch: "386" },
-            { goos: "linux", goarch: "arm" },
-            { goos: "windows", goarch: "amd64" },
-            { goos: "windows", goarch: "arm64" },
-          ]
+        include: [
+          { goos: "darwin", goarch: "amd64", goamd64: "v1", output: "amd64-v1" },
+          { goos: "darwin", goarch: "amd64", goamd64: "v3", output: "amd64-v3" },
+          { goos: "darwin", goarch: "arm64", output: "arm64" },
+          { goos: "freebsd", goarch: "amd64", goamd64: "v1", output: "amd64-v1" },
+          { goos: "freebsd", goarch: "amd64", goamd64: "v3", output: "amd64-v3" },
+          { goos: "freebsd", goarch: "arm64", output: "arm64" },
+          { goos: "freebsd", goarch: "386", output: "386" },
+          { goos: "freebsd", goarch: "arm", output: "arm" },
+          { goos: "linux", goarch: "amd64", goamd64: "v1", output: "amd64-v1" },
+          { goos: "linux", goarch: "amd64", goamd64: "v3", output: "amd64-v3" },
+          { goos: "linux", goarch: "arm64", output: "arm64" },
+          { goos: "linux", goarch: "386", go386: "sse2", output: "386-sse2" },
+          { goos: "linux", goarch: "arm", goarm: "7", output: "armv7" },
+          { goos: "linux", goarch: "arm", goarm: "6", output: "armv6" },
+          { goos: "linux", goarch: "arm", goarm: "5", output: "armv5" },
+          { goos: "linux", goarch: "loong64", output: "loong64" },
+          { goos: "linux", goarch: "mips64le", output: "mips64le" },
+          { goos: "linux", goarch: "mips64", output: "mips64" },
+          { goos: "linux", goarch: "mipsle", output: "mipsle" },
+          { goos: "linux", goarch: "mips", output: "mips" },
+          { goos: "linux", goarch: "ppc64le", output: "ppc64le" },
+          { goos: "linux", goarch: "ppc64", output: "ppc64" },
+          { goos: "linux", goarch: "riscv64", output: "riscv64" },
+          { goos: "linux", goarch: "s390x", output: "s390x" },
+          { goos: "windows", goarch: "amd64", goamd64: "v1", output: "amd64-v1" },
+          { goos: "windows", goarch: "amd64", goamd64: "v3", output: "amd64-v3" },
+          { goos: "windows", goarch: "arm64", output: "arm64" },
+        ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -106,10 +125,6 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Setup clang
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -140,16 +155,37 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          GOAMD64: ${{ matrix.goamd64 }}
+          GOARM: ${{ matrix.goarm }}
+          GO386: ${{ matrix.go386 }}
         run: |
-          make ${{ env.BIN_NAME }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }}
-
+          make ${{ env.BIN_NAME }} GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} GOAMD64=${{ matrix.goamd64 }} GOARM=${{ matrix.goarm }} GO386=${{ matrix.go386 }}
+          
       - name: List build dir
         run: ls -lh build/
+
+      - name: Prepare main arch binaries for Docker buildx
+        env:
+          ARCH_MAP: ${{ env.ARCH_MAP }}
+        run: |
+          for line in $(echo "${ARCH_MAP}"); do
+            short=$(echo "$line" | cut -d: -f1)
+            long=$(echo "$line" | cut -d: -f2)
+            src="build/${{ env.BIN_NAME }}-linux-$long"
+            dst="build/${{ env.BIN_NAME }}-linux-$short"
+            if [ -f "$src" ]; then
+              cp "$src" "$dst" || true
+              echo "Copied $src -> $dst"
+            else
+              echo "Warning: $src not found, skip $key"
+            fi
+          done
+          ls -lhR build/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.BIN_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: ${{ env.BIN_NAME }}-${{ matrix.goos }}-${{ matrix.output }}
           path: build/*
           retention-days: 30
 
