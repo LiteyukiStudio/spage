@@ -27,7 +27,7 @@ spage:
 	VERSION=$$(git describe --tags --always 2>/dev/null || echo dev); \
 	echo "Building $$OUTNAME:$$VERSION for $(GOOS)/$(GOARCH)"; \
 	if [ "$(GOOS)" = "windows" ]; then OUTNAME=$${OUTNAME}.exe; fi; \
-	CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(GOARCH) GOARM=$(GOARM) GOAMD64=$(GOAMD64) GO386=$(GO386) \
+	CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(GOARCH) \
 	CC="zig cc" CXX="zig c++" \
 	go build -trimpath \
 	-ldflags "-X '$(GO_PKG_ROOT)/config.CommitHash=$$(git rev-parse HEAD)' \
