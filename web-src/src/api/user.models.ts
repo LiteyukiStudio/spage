@@ -1,7 +1,7 @@
 /**
  * This file defines the request models used in the API.
  */
-import { CaptchaProvider } from "@/types/captcha";
+import type { CaptchaProvider } from "@/types/captcha";
 
 import type { BaseResponse } from "./base.models";
 import type { Org } from "./org.models";
@@ -47,7 +47,6 @@ export interface RegisterRequest {
 
 export interface RegisterResponse extends BaseResponse {
   token: string;
-  refreshToken: string;
   userId: number;
 }
 

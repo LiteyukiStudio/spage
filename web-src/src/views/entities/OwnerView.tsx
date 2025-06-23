@@ -18,7 +18,6 @@ export default function OwnerView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 使用 react-router-dom 的 useParams
   const params = useParams();
 
   useEffect(() => {
@@ -32,7 +31,7 @@ export default function OwnerView() {
     setLoading(true);
     getOwnerByName({ name: params.owner as string })
       .then((owner) => {
-        console.log("Owner data:", owner); // 调试日志
+        console.log("Owner data:", owner);
         if (owner && owner.data) {
           setOwnerProps({
             type: owner.data.type,
