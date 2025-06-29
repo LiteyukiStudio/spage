@@ -317,7 +317,7 @@ func (userApi) ListApiToken(ctx context.Context, c *app.RequestContext) {
 	})
 }
 
-// SendVerifyCode 发送邮件验证码
+// SendVerifyCode 主动请求发送邮件验证码
 func (userApi) SendVerifyCode(ctx context.Context, c *app.RequestContext) {
 	sendVerifyCodeReq := &SendVerifyCodeReq{}
 	err := c.BindJSON(sendVerifyCodeReq)
@@ -325,22 +325,28 @@ func (userApi) SendVerifyCode(ctx context.Context, c *app.RequestContext) {
 		resps.BadRequest(c, resps.ParameterError)
 		return
 	}
+	err = sendEmailVerifyCode(sendVerifyCodeReq.Email, utils.Random.Number(6))
+	if err != nil {
+		resps.InternalServerError(c, err.Error())
+		return
+	}
+	resps.Ok(c, "Verify code sent successfully", map[string]any{})
+}
+
+func sendEmailVerifyCode(target, code string) error {
+	kvStore := utils.GetKVStore()
+	expire := 60 * 5
+	kvStore.Set(constants.KVPrefixEmailVerifyCode+target, code, time.Duration(expire)*time.Second)
 	tmplFile, err := static.AssetsFS.Open("assets/verify_code.tmpl")
 	if err != nil {
-		resps.InternalServerError(c, "Failed to open verify_code.tmpl")
-		return
+		return err
 	}
 	defer tmplFile.Close()
 	tmplBytes, err := io.ReadAll(tmplFile)
 	if err != nil {
-		resps.InternalServerError(c, "Failed to read verify_code.tmpl")
-		return
+		return err
 	}
-	verifyCode := utils.Random.Number(6)
-	expire := 60 * 5
-	kvStore := utils.GetKVStore()
-	kvStore.Set(constants.KVPrefixVerify+sendVerifyCodeReq.Email, verifyCode, time.Duration(expire)*time.Second)
-	err = utils.SendTemplate(ctx, &utils.EmailConfig{
+	return utils.SendTemplate(context.Background(), &utils.EmailConfig{
 		Enable:   config.EmailEnable,
 		Username: config.EmailUsername,
 		Address:  config.EmailAddress,
@@ -348,15 +354,25 @@ func (userApi) SendVerifyCode(ctx context.Context, c *app.RequestContext) {
 		Port:     config.EmailPort,
 		Password: config.EmailPassword,
 		SSL:      config.EmailSSL,
-	}, sendVerifyCodeReq.Email, "验证您的电子邮件", string(tmplBytes), map[string]any{
+	}, target, "验证您的电子邮件", string(tmplBytes), map[string]any{
 		"Title":      config.Title,
-		"Email":      sendVerifyCodeReq.Email,
-		"VerifyCode": verifyCode,
+		"Email":      target,
+		"VerifyCode": code,
 		"Expire":     expire / 60, // 过期时间，单位分钟
 	})
-	if err != nil {
-		resps.InternalServerError(c, err.Error())
-		return
+}
+
+func verifyEmailVerifyCode(target, code string) bool {
+	kvStore := utils.GetKVStore()
+	value, exists := kvStore.Get(constants.KVPrefixEmailVerifyCode + target)
+	if !exists {
+		return false
 	}
-	resps.Ok(c, "Verify code sent successfully", map[string]any{})
+	verifyCode, ok := value.(string)
+	if !ok || verifyCode != code {
+		return false
+	}
+	// 删除验证码，防止重复使用
+	kvStore.Delete(constants.KVPrefixEmailVerifyCode + target)
+	return true
 }
