@@ -18,6 +18,7 @@ func registerUserGroup(group *route.RouterGroup, groupWithoutAuth *route.RouterG
 		{
 			userGroupWithoutAuthNeedCaptcha.POST("/register", handlers.User.Register)
 			userGroupWithoutAuthNeedCaptcha.POST("/login", handlers.User.Login)
+			userGroupWithoutAuthNeedCaptcha.POST("/verify-code", handlers.User.SendVerifyCode) // 发送邮件验证码
 		}
 	}
 

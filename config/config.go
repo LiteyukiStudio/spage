@@ -28,13 +28,14 @@ var (
 	BaseUrl = "http://localhost:3000"
 	OidcUri = "/api/v1/user/oidc/login"
 	// EmailEnable Email 相关配置项 Email Configuration
-	EmailEnable   bool   // 是否启用邮箱发送 Enable Email Sending
-	EmailUsername string // 邮箱用户名 Email Username
-	EmailAddress  string // 邮箱地址 Email Address
-	EmailHost     string // 邮箱服务器地址 Email Server Address
-	EmailPort     string // 邮箱服务器端口 Email Server Port
-	EmailPassword string // 邮箱密码 Email Password
-	EmailSSL      bool   // 是否启用SSL Enable SSL
+	EmailEnable      bool   // 是否启用邮箱发送 Enable Email Sending
+	EmailUsername    string // 邮箱用户名 Email Username
+	EmailAddress     string // 邮箱地址 Email Address
+	EmailHost        string // 邮箱服务器地址 Email Server Address
+	EmailPort        string // 邮箱服务器端口 Email Server Port
+	EmailPassword    string // 邮箱密码 Email Password
+	EmailSSL         bool   // 是否启用SSL Enable SSL
+	EmailTestAddress string // 测试邮箱地址，用于测试邮件发送功能 Test Email Address
 	// DomainVerifyPolice 域名相关配置
 	DomainVerifyPolice = constants.DomainVerifyPolicyLoose // 域名验证策略，默认为宽松验证 Loose Domain Verification Policy
 	// PageLimit 每页显示的文章数量，默认为40
@@ -62,6 +63,7 @@ var (
 
 	ReleaseSavePath  = "./data/releases"
 	UploadsPath      = "./data/uploads"
+	Title            = "spage"           // 网站标题 Website Title
 	FileMaxSize      = 100 * 1024 * 1024 // 文件最大大小，单位字节 File Max Size
 	FileDriverConfig = &filedriver.DriverConfig{
 		Type:     constants.FileDriverLocal,
@@ -146,6 +148,7 @@ func Init() error {
 	EmailPort = GetString("email.port", EmailPort)
 	EmailPassword = GetString("email.password", EmailPassword)
 	EmailSSL = GetBool("email.ssl", EmailSSL)
+	EmailTestAddress = GetString("email.test-address", EmailTestAddress)
 
 	// 域名配置项
 	DomainVerifyPolice = GetString("domain.verify-policy", DomainVerifyPolice)
@@ -167,6 +170,7 @@ func Init() error {
 		WebDavPassword: GetString("file.driver.webdav.password", ""),
 		WebDavPolicy:   GetString("file.driver.webdav.policy", constants.WebDavPolicyProxy),
 	}
+	Title = GetString("title", Title)
 
 	// 分页查询限制
 	PageLimit = GetInt("page-limit", PageLimit)

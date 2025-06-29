@@ -6,8 +6,10 @@ import (
 	"github.com/LiteyukiStudio/spage/constants"
 	"github.com/LiteyukiStudio/spage/spage/middle"
 	"github.com/LiteyukiStudio/spage/spage/models"
+	"github.com/LiteyukiStudio/spage/spage/static"
 	"github.com/LiteyukiStudio/spage/spage/store"
 	"github.com/LiteyukiStudio/spage/utils"
+	"io"
 	"strconv"
 	"time"
 
@@ -313,4 +315,48 @@ func (userApi) ListApiToken(ctx context.Context, c *app.RequestContext) {
 		}(),
 		"total": total,
 	})
+}
+
+// SendVerifyCode 发送邮件验证码
+func (userApi) SendVerifyCode(ctx context.Context, c *app.RequestContext) {
+	sendVerifyCodeReq := &SendVerifyCodeReq{}
+	err := c.BindJSON(sendVerifyCodeReq)
+	if err != nil {
+		resps.BadRequest(c, resps.ParameterError)
+		return
+	}
+	tmplFile, err := static.AssetsFS.Open("assets/verify_code.tmpl")
+	if err != nil {
+		resps.InternalServerError(c, "Failed to open verify_code.tmpl")
+		return
+	}
+	defer tmplFile.Close()
+	tmplBytes, err := io.ReadAll(tmplFile)
+	if err != nil {
+		resps.InternalServerError(c, "Failed to read verify_code.tmpl")
+		return
+	}
+	verifyCode := utils.Random.Number(6)
+	expire := 60 * 5
+	kvStore := utils.GetKVStore()
+	kvStore.Set(constants.KVPrefixVerify+sendVerifyCodeReq.Email, verifyCode, time.Duration(expire)*time.Second)
+	err = utils.SendTemplate(ctx, &utils.EmailConfig{
+		Enable:   config.EmailEnable,
+		Username: config.EmailUsername,
+		Address:  config.EmailAddress,
+		Host:     config.EmailHost,
+		Port:     config.EmailPort,
+		Password: config.EmailPassword,
+		SSL:      config.EmailSSL,
+	}, sendVerifyCodeReq.Email, "验证您的电子邮件", string(tmplBytes), map[string]any{
+		"Title":      config.Title,
+		"Email":      sendVerifyCodeReq.Email,
+		"VerifyCode": verifyCode,
+		"Expire":     expire / 60, // 过期时间，单位分钟
+	})
+	if err != nil {
+		resps.InternalServerError(c, err.Error())
+		return
+	}
+	resps.Ok(c, "Verify code sent successfully", map[string]any{})
 }

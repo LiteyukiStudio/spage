@@ -16,6 +16,10 @@ type LoginReq struct {
 	Remember     bool   `json:"remember"`                         // 记住我
 }
 
+type SendVerifyCodeReq struct {
+	Email string `json:"email" binding:"required"`
+}
+
 // CreateTokenReq 创建Token请求
 type CreateTokenReq struct {
 	Expire uint `json:"expire" binding:"required"`

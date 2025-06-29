@@ -51,17 +51,16 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>欢迎使用 {{.ProductName}}</h1>
+            <h1>欢迎使用 {{.Title}}</h1>
         </div>
         <div class="content">
-            <p>尊敬的用户 {{.UserName}}，您好！</p>
+            <p>尊敬的用户 {{.Email}}，您好！</p>
             <p>感谢您使用我们的服务。以下是您的验证码：</p>
             <div class="code">{{.VerifyCode}}</div>
-            <p>请在 <strong>{{.ExpireTime}}</strong> 内使用此验证码完成验证。</p>
+            <p>请在 <strong>{{.Expire}}</strong> 分钟内使用此验证码完成验证。</p>
         </div>
         <div class="footer">
             <p>如果您未请求此邮件，请忽略。</p>
-            <p>&copy; {{.Year}} {{.ProductName}}. 保留所有权利。</p>
         </div>
     </div>
 </body>

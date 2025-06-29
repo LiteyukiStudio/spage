@@ -37,4 +37,6 @@ const (
 	DomainVerifyPolicyNone   = "none"   // 不验证域名 - 适合私域实例
 	DomainVerifyPolicyLoose  = "loose"  // 宽松验证 - 主域名验证后子域名无需验证
 	DomainVerifyPolicyStrict = "strict" // 严格验证 - 所有域名都需要验证
+
+	KVPrefixVerify = "verify:" // KV存储前缀 - 用于存储域名验证信息
 )
