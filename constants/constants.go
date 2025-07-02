@@ -41,4 +41,5 @@ const (
 	KVPrefixEmailVerifyCode = "email-verify:"  // KV存储前缀 - 用于存储验证信息
 	KVValueEmailVerified    = "email-verified" // KV存储值 - 用于标记已验证
 	KVValueEmailPending     = "email-pending"  // KV存储值 - 用于标记验证中
+	KVKeyOidcState          = "oidc-state:"    // KV存储前缀 - 用于存储OIDC状态信息
 )

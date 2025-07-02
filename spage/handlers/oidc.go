@@ -15,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"net/url"
+	"time"
 )
 
 type oidcType struct{}
@@ -33,6 +34,8 @@ func (oidcType) ListOidcConfig(ctx context.Context, c *app.RequestContext) {
 			for _, oidcConfig := range oidcConfigs {
 				state := utils.GenerateRandomString(32)
 				// TODO 使用utils的键值内存储存和验证state
+				kvStore := utils.GetKVStore()
+				kvStore.Set(constants.KVKeyOidcState+state, oidcConfig.Name, 5*time.Minute)
 				configsDto = append(configsDto, map[string]any{
 					"id":           oidcConfig.ID,
 					"display_name": oidcConfig.DisplayName,
@@ -99,8 +102,13 @@ func requestUserInfo(client *resty.Client, userInfoEndpoint, accessToken string)
 func (oidcType) LoginOidcConfig(ctx context.Context, c *app.RequestContext) {
 	name := c.Param("name")
 	code := c.Query("code")
-	state := c.Query("state") // TODO 暂时只记录state，不做校验
-	logrus.Println("state:", state)
+	state := c.Query("state")
+	kvStore := utils.GetKVStore()
+	v, ok := kvStore.Get(constants.KVKeyOidcState + state)
+	if !ok || name != v {
+		resps.BadRequest(c, "无效的OIDC state")
+		return
+	}
 
 	oidcConfig, err := store.Oidc.GetByName(name)
 	if err != nil || oidcConfig == nil {
@@ -111,9 +119,8 @@ func (oidcType) LoginOidcConfig(ctx context.Context, c *app.RequestContext) {
 		resps.BadRequest(c, "缺少授权码")
 		return
 	}
-	// 创建HTTP客户端
+
 	client := resty.New()
-	// 请求访问令牌
 	tokenResult, err := requestToken(
 		client,
 		oidcConfig.TokenEndpoint,
@@ -127,19 +134,16 @@ func (oidcType) LoginOidcConfig(ctx context.Context, c *app.RequestContext) {
 		resps.InternalServerError(c, "获取访问令牌失败")
 		return
 	}
-	// 请求用户信息
 	userInfo, err := requestUserInfo(client, oidcConfig.UserInfoEndpoint, tokenResult.AccessToken)
 	if err != nil {
 		logrus.Errorf("获取用户信息失败: %v", err)
 		resps.InternalServerError(c, "获取用户信息失败")
 		return
 	}
-	// 检查用户名是否允许，不允许的话，在后面加上随机字符串
 	if !store.Owner.IsNameAvailable(userInfo.Name) {
 		userInfo.Name = utils.GenerateRandomString(4) + userInfo.Name
 		logrus.Warnf("用户名 %s 已存在，已更改为 %s", userInfo.Name, userInfo.Name)
 	}
-	// 检查用户邮箱是否允许
 	user, err := store.User.GetByEmail(userInfo.Email)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		if !config.AllowRegisterByOidc {
@@ -148,25 +152,22 @@ func (oidcType) LoginOidcConfig(ctx context.Context, c *app.RequestContext) {
 			return
 		}
 	}
-	// 校验允许组
 	if !matchGroups(userInfo.Groups, oidcConfig.AllowedGroups, true) {
 		resps.Forbidden(c, "用户不在允许的组中")
 		return
 	}
-	// 处理用户登录
 	user, err = store.User.FindOrCreateByEmail(userInfo.Email, userInfo.Name)
 	if err != nil {
 		logrus.Errorf("用户处理失败: %v", err)
 		resps.InternalServerError(c, "用户处理失败")
 		return
 	}
-	// 校验管理员组
 	if matchGroups(userInfo.Groups, oidcConfig.AdminGroups, false) {
 		user.Role = constants.GlobalRoleAdmin
 		err = store.User.Update(user)
 		if err != nil {
-			logrus.Errorf("更新用户失败: %v", err)
-			resps.InternalServerError(c, "更新用户失败")
+			logrus.Errorf("更新用户角色失败: %v", err)
+			resps.InternalServerError(c, "更新用户角色失败")
 			return
 		}
 	}
