@@ -66,3 +66,15 @@ func ServiceUnavailable(c *app.RequestContext, message string) {
 func RespMessageWithError(message string, err error) string {
 	return message + ": " + err.Error()
 }
+
+// page
+
+type ErrorPageTemplate struct {
+	status  int
+	message string
+	details string
+}
+
+func ErrorPage(c *app.RequestContext, template *ErrorPageTemplate) {
+
+}

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>错误 {{.ErrorCode}} - {{.ErrorName}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+
+        // 检测系统主题并应用
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-lg p-8 mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md">
+        <div class="text-center">
+            <div class="inline-block p-4 mb-4 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+
+            <h1 class="text-4xl font-bold text-red-500 dark:text-red-400">{{.ErrorCode}}</h1>
+            <h2 class="mt-2 text-2xl font-semibold">{{.ErrorName}}</h2>
+
+            <div class="mt-4 text-gray-600 dark:text-gray-400">
+                <p>{{.ErrorDetail}}</p>
+            </div>
+
+            <div class="mt-8">
+                <a href="/" class="inline-block px-6 py-3 text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 rounded-lg transition duration-200 font-medium">
+                    返回主页
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="fixed bottom-4 text-center w-full text-sm text-gray-500 dark:text-gray-400">
+        &copy; {{.CurrentYear}} - 网站名称
+    </footer>
+</body>
+</html>

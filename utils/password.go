@@ -53,7 +53,6 @@ func (u *PasswordType) CheckPasswordComplexity(password string, level int) bool 
 	if len(password) <= 8 {
 		return false
 	}
-
 	// 定义各种字符类型的检查标志
 	var (
 		hasLower   bool
@@ -62,7 +61,6 @@ func (u *PasswordType) CheckPasswordComplexity(password string, level int) bool 
 		hasSpecial bool
 		typesUsed  = 0
 	)
-
 	for _, char := range password {
 		switch {
 		case unicode.IsLower(char) && !hasLower:
@@ -79,6 +77,5 @@ func (u *PasswordType) CheckPasswordComplexity(password string, level int) bool 
 			typesUsed++
 		}
 	}
-
 	return typesUsed >= level
 }

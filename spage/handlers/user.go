@@ -183,19 +183,15 @@ func (userApi) Register(ctx context.Context, c *app.RequestContext) {
 		resps.BadRequest(c, "Parameter error")
 		return
 	}
-	// TODO 校验邮箱验证码
-	// 校验密码复杂度
-	passwordLevel := config.GetInt("password_complexity", 3)
+	passwordLevel := config.GetInt("password_complexity", 1)
 	if !utils.Password.CheckPasswordComplexity(request.Password, passwordLevel) {
 		resps.BadRequest(c, "Password complexity is too low")
 		return
 	}
-	// 判断用户名是否存在
-	if store.Owner.IsNameAvailable(request.Username) {
+	if !store.Owner.IsNameAvailable(request.Username) {
 		resps.BadRequest(c, "Username already exists")
 		return
 	}
-	// 创建用户
 	hashPassword, err := utils.Password.HashPassword(request.Password, config.JwtSecret)
 	if err != nil {
 		resps.InternalServerError(c, "Failed to hash password")
@@ -325,21 +321,18 @@ func (userApi) SendVerifyCode(ctx context.Context, c *app.RequestContext) {
 		resps.BadRequest(c, resps.ParameterError)
 		return
 	}
-	emailVerifyKey := utils.Random.String(32)
-	err = sendEmailVerifyCode(emailVerifyKey, utils.Random.Number(6))
+	err = sendEmailVerifyCode(sendVerifyCodeReq.Email, utils.Random.Number(6))
 	if err != nil {
 		resps.InternalServerError(c, err.Error())
 		return
 	}
-	resps.Ok(c, "Verify code sent successfully", map[string]any{
-		"email_verify_key": emailVerifyKey, // 用于验证的key
-	})
+	resps.Ok(c, "Verify code sent successfully", map[string]any{})
 }
 
-func sendEmailVerifyCode(key, code string) error {
+func sendEmailVerifyCode(email, code string) error {
 	kvStore := utils.GetKVStore()
 	expire := 60 * 5
-	kvStore.Set(constants.KVPrefixEmailVerifyCode+key, code, time.Duration(expire)*time.Second)
+	kvStore.Set(constants.KVPrefixEmailVerifyCode+email, code, time.Duration(expire)*time.Second)
 	tmplFile, err := static.AssetsFS.Open("assets/verify_code.tmpl")
 	if err != nil {
 		return err
@@ -357,10 +350,11 @@ func sendEmailVerifyCode(key, code string) error {
 		Port:     config.EmailPort,
 		Password: config.EmailPassword,
 		SSL:      config.EmailSSL,
-	}, key, "验证您的电子邮件", string(tmplBytes), map[string]any{
+	}, email, "验证您的电子邮件", string(tmplBytes), map[string]any{
 		"Title":      config.Title,
-		"Email":      key,
+		"Email":      email,
 		"VerifyCode": code,
 		"Expire":     expire / 60, // 过期时间，单位分钟
 	})
+
 }

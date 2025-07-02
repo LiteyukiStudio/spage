@@ -16,7 +16,7 @@ func registerUserGroup(group *route.RouterGroup, groupWithoutAuth *route.RouterG
 
 		userGroupWithoutAuthNeedCaptcha := userGroupWithoutAuth.Group("").Use(middle.Captcha.UseCaptcha())
 		{
-			userGroupWithoutAuthNeedCaptcha.POST("/register", handlers.User.Register)
+			userGroupWithoutAuthNeedCaptcha.POST("/register", middle.Auth.NeedVerifyEmail(), handlers.User.Register)
 			userGroupWithoutAuthNeedCaptcha.POST("/login", handlers.User.Login)
 			userGroupWithoutAuthNeedCaptcha.POST("/verify-code", handlers.User.SendVerifyCode) // 发送邮件验证码
 		}
