@@ -2,7 +2,7 @@ package agent
 
 import (
 	"context"
-	"github.com/LiteyukiStudio/spage/config"
+	"github.com/LiteyukiStudio/spage/pkg/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -24,7 +24,7 @@ func UnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServ
 		return nil, status.Errorf(codes.Unauthenticated, "missing authorization token")
 	}
 
-	// 提取Token（假设格式为 "Bearer <token>"）
+	// 提取Token
 	token := strings.TrimPrefix(auths[0], "Bearer ")
 	if token == "" {
 		return nil, status.Errorf(codes.Unauthenticated, "invalid token format")

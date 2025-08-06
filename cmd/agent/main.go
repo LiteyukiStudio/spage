@@ -1,23 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/LiteyukiStudio/spage/agent"
-	"github.com/LiteyukiStudio/spage/config"
+	"github.com/LiteyukiStudio/spage/agent/caddy"
+	"github.com/LiteyukiStudio/spage/pkg/config"
 	"github.com/sirupsen/logrus"
 	"net"
 )
 
 func main() {
 	// 解析参数
-	config.Cmd.ParseArgs()
-	config.AgentConfig.Server.Token = config.Cmd.GetString("server.token", "")
-	config.AgentConfig.Server.Host = config.Cmd.GetString("server.host", "127.0.0.1")
-	config.AgentConfig.Server.Port = config.Cmd.GetString("server.port", "9526")
-	config.AgentConfig.Service.Host = config.Cmd.GetString("service.host", "")
-	config.AgentConfig.Service.Port = config.Cmd.GetString("service.port", "9527")
-	config.AgentConfig.Service.Static = config.Cmd.GetString("service.static", "./static")
-	config.AgentConfig.Caddy.Point = config.Cmd.GetString("caddy.point", "")
+	config.AgentConfig.LoadByCmd()
 	err := config.AgentConfig.InitAgentConfig()
 	if err != nil {
 		logrus.Panicf("Failed to initialize agent configuration: %v", err)

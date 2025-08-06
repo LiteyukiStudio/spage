@@ -10,6 +10,8 @@ service AgentService {
   rpc UpdateSite(UpdateSiteRequest) returns (UpdateSiteResponse) {}
   // 删除站点
   rpc DeleteSite(DeleteSiteRequest) returns (DeleteSiteResponse) {}
+  // 获取站点信息
+  rpc GetSite(GetSiteRequest) returns (GetSiteResponse) {}
   // 上传文件
   rpc UploadRelease(stream UploadReleaseRequest) returns (UploadReleaseResponse) {}
 }
@@ -23,7 +25,8 @@ message CreateSiteRequest {
   repeated string domains = 5;
 }
 message CreateSiteResponse {
-  string message = 1;
+  bool success = 1;
+  string message = 2;
 }
 
 // 更新站点信息
@@ -35,7 +38,8 @@ message UpdateSiteRequest {
   repeated string domains = 5;
 }
 message UpdateSiteResponse {
-  string message = 1;
+  bool success = 1;
+  string message = 2;
 }
 
 // 删除站点
@@ -45,7 +49,24 @@ message DeleteSiteRequest {
   string OwnerName  = 3;
 }
 message DeleteSiteResponse {
-  string message = 1;
+  bool success = 1;
+  string message = 2;
+}
+
+// 获取站点信息
+message GetSiteRequest {
+  string name = 1;
+  string projectName = 2;
+  string OwnerName  = 3;
+}
+message GetSiteResponse {
+  bool success = 1;
+  string message = 2;
+  string sitePath = 3;
+  string releaseUpdateAt = 4;
+  string releaseHash  = 5;
+  string subDomain = 6;
+  repeated string domains = 7;
 }
 
 // 上传 release
@@ -54,7 +75,9 @@ message UploadReleaseRequest {
   string projectName = 2;
   string OwnerName  = 3;
   bytes content = 4;
+  string releaseHash = 5;
 }
 message UploadReleaseResponse {
-  string message = 1;
+  bool success = 1;
+  string message = 2;
 }
